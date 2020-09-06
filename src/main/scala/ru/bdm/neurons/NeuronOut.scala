@@ -2,7 +2,7 @@ package ru.bdm.neurons
 
 import scala.util.Random
 
-class NeuronOut(val id:Int, val inputs:Seq[Int], val activate: Double => Double = Func(Func.sigmoid), val neurons: Int => Neuron) extends Neuron {
+class NeuronOut(val id:Int, val inputs:Array[Int], val activate: Double => Double = Func(Func.sigmoid), val neurons: Int => Neuron) extends Neuron {
 
   override val weights: Array[Double] = new Array[Double](inputs.length + 1)
 

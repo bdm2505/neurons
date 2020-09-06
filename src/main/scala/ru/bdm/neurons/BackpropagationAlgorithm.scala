@@ -1,18 +1,20 @@
 package ru.bdm.neurons
 
-import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
-class BackpropagationAlgorithm(val ns: NeuronSystem) {
+class BackpropagationAlgorithm(val ns: NeuronSystem, var speed:Double = 0.5) {
 
   val isBe: Array[Boolean] = new Array(ns.neurons.length)
   val errors: Array[Double] = new Array(ns.neurons.length)
-  var queue: mutable.Queue[Int] = mutable.Queue.empty
-  var sumError:Double = 0
+  var list: List[Int] = Nil
+  var sumError: Double = 0
+
 
   def derivative(d: Double): Double = d * (1 - d)
 
-  def teach(inputs:Seq[Double], rights: Seq[Double], speed:Double = 0.001): Unit = {
+  def teach(inputs: Seq[Double], rights: Seq[Double], parallel:Boolean = false): Unit = {
     ns.work(inputs)
     for (i <- isBe.indices) {
       isBe(i) = false
@@ -23,25 +25,36 @@ class BackpropagationAlgorithm(val ns: NeuronSystem) {
 
     ns.outputs.zip(rights).foreach { case (neuron, right) =>
       sumError += Math.abs(right - neuron.work())
-      errors(neuron.id) = derivative(neuron.work()) * (right - neuron.work())
-      queue enqueue neuron.id
+      errors(neuron.id) = (right - neuron.work())
+      list ::= neuron.id
     }
 
-    while (queue.nonEmpty) {
-      ns.neurons(queue.dequeue()) match {
-        case neuron: NeuronOut if !isBe(neuron.id) =>
-          isBe(neuron.id) = true
-          neuron.inputs.zip(neuron.weights).map { case (id, weight) =>
-            errors(id) = (errors(id) + weight * errors(neuron.id)) / 2.0
-            if(!isBe(id))
-              queue enqueue(id)
-            for (i <- 0 until (neuron.weights.length - 1))
-              neuron.weights(i) += errors(neuron.id) * speed * ns.neurons(neuron.inputs(i)).work()
-            neuron.weights(neuron.weights.length - 1) += errors(neuron.id) * speed
-          }
-        case _ =>
+    while (list.nonEmpty) {
+      val nq = list
+      list = Nil
+      nq foreach { id =>
+        if (parallel) Future {
+          calculate(id)
+        } else
+          calculate(id)
       }
     }
   }
 
+  private def calculate(id: Int) = {
+    ns.neurons(id) match {
+      case neuron: NeuronOut if !isBe(neuron.id) =>
+        isBe(neuron.id) = true
+        errors(neuron.id) *= derivative(neuron.work())
+        neuron.inputs.zip(neuron.weights).foreach { case (id, weight) =>
+          errors(id) += weight * errors(neuron.id)
+          if (!isBe(id))
+            list ::= id
+        }
+        for (i <- 0 until (neuron.weights.length - 1))
+          neuron.weights(i) += errors(neuron.id) * speed * ns.neurons(neuron.inputs(i)).work()
+        neuron.weights(neuron.weights.length - 1) += errors(neuron.id) * speed
+      case _ =>
+    }
+  }
 }
