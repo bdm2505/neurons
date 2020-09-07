@@ -17,17 +17,23 @@ object Main {
   def main(args: Array[String]): Unit = {
     implicit val formats = Serialization.formats(NoTypeHints)
 
+    println(-1 % 30)
+
     val alf = "ёйцукенгшщзхъфывапролджэячсмитьбю.,!? "
     val loadFile = "result.json"
     val s1 = Source.fromFile(loadFile)
-    val ns = Serialization.read[NeuronSystemWrite](s1.getLines().mkString(" ")).create()
-    //val ns = NeuronSystem.createStandardModel(Seq(alf.length * 5, 100, 50, 40, 30, alf.length))
-    val bpa = new BackpropagationAlgorithm(ns)
+    //val ns = Serialization.read[NeuronSystemWrite](s1.getLines().mkString(" ")).create()
+
+
+    val l1 = RecurLayer(alf.length, 100, alf.length)
+
+    val ns = NeuronSystem.create(l1)
+    val bpa = new BackpropagationAlgorithm(ns, 0.1)
 
     def genInputs(in: Seq[Char]): Array[Double] = {
-      val arr = Array.fill(alf.length * 5)(.1)
+      val arr = Array.fill(alf.length)(.1)
       for (i <- in.indices) {
-        arr(alf.indexOf(in(i)) + i * alf.length) = 1.0
+        arr(i) = alf.indexOf(in(i)).toDouble / alf.length
       }
       arr
     }
@@ -51,6 +57,7 @@ object Main {
     var circle = 0
     val future = Future {
       println("teach started")
+      var minError = Double.MaxValue
       val startTime = System.currentTimeMillis()
       while (noEnd) {
         index += 1
@@ -62,8 +69,9 @@ object Main {
         bpa.teach(genInputs(str.slice(index, index + 5)), genOuts(str.charAt(index + 5)))
 
         val endTime = (1 - (index.toDouble / str.length)) / ((index.toDouble / str.length) / ((System.currentTimeMillis() - startTime) / 1000.0))
-        if (index % 10 == 0)
-          println(bpa.sumError + " " + index.toFloat / str.length * 100 + 100 * circle + "% осталось времени " + (endTime / 60 toInt) + " min " + (((endTime * 1000) % 60 toInt) / 10)  + " sec")
+        minError = Math.min(minError, bpa.sumError)
+        if (index % 100 == 0)
+          println(minError + " " + index.toFloat / str.length * 100 + 100 * circle + "% осталось времени " + (endTime / 60 toInt) + " min " + (((endTime * 1000) % 60 toInt) / 10)  + " sec (" + bpa.sumError + ")")
       }
     }
 
@@ -80,7 +88,7 @@ object Main {
       in = StdIn.readLine()
       for (_ <- 1 to 20)
         in += getOut(ns.work(genInputs(in.slice(in.length - 5, in.length))))
-      println(in)
+      println(s"'$in'")
     }
   }
 

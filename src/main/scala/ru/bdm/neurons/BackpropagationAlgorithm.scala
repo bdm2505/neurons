@@ -24,8 +24,8 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed:Double = 0.5) {
     sumError = 0
 
     ns.outputs.zip(rights).foreach { case (neuron, right) =>
-      sumError += Math.abs(right - neuron.work())
-      errors(neuron.id) = (right - neuron.work())
+      sumError += Math.abs(right - neuron.result())
+      errors(neuron.id) = (right - neuron.result())
       list ::= neuron.id
     }
 
@@ -43,16 +43,16 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed:Double = 0.5) {
 
   private def calculate(id: Int) = {
     ns.neurons(id) match {
-      case neuron: NeuronOut if !isBe(neuron.id) =>
+      case neuron: Neuron if !isBe(neuron.id) =>
         isBe(neuron.id) = true
-        errors(neuron.id) *= derivative(neuron.work())
+        errors(neuron.id) *= derivative(neuron.result())
         neuron.inputs.zip(neuron.weights).foreach { case (id, weight) =>
           errors(id) += weight * errors(neuron.id)
           if (!isBe(id))
             list ::= id
         }
         for (i <- 0 until (neuron.weights.length - 1))
-          neuron.weights(i) += errors(neuron.id) * speed * ns.neurons(neuron.inputs(i)).work()
+          neuron.weights(i) += errors(neuron.id) * speed * ns.neurons(neuron.inputs(i)).result()
         neuron.weights(neuron.weights.length - 1) += errors(neuron.id) * speed
       case _ =>
     }

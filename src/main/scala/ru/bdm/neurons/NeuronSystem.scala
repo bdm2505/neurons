@@ -12,8 +12,8 @@ import scala.util.Random
 class NeuronSystem(numberNeurons:Int, val model: Seq[NeuronModel]) {
   val neurons:Array[Neuron] = new Array(numberNeurons)
 
-  var inputs:Seq[NeuronInput] = Seq.empty
-  var outputs:Seq[NeuronOut] = Seq.empty
+  var inputs:Seq[Neuron] = Seq.empty
+  var outputs:Seq[Neuron] = Seq.empty
 
   def addNeurons(ns:Seq[Neuron]): Unit = {
     ns.foreach{ neuron =>
@@ -23,15 +23,15 @@ class NeuronSystem(numberNeurons:Int, val model: Seq[NeuronModel]) {
     }
   }
   def work(in:Seq[Double]):Seq[Double] = {
-    inputs zip in foreach { case (neuron, in) => neuron.value = in }
     neurons.foreach(_.update())
-    outputs.map(_.work())
+    inputs foreach (_.work(in))
+    outputs.map(_.result())
   }
 
   def write():NeuronSystemWrite = {
     NeuronSystemWrite(model, neurons.foldRight[Seq[WeightsWrite]](Seq.empty){ case (neuron, arr) =>
       neuron match {
-        case out: NeuronOut => arr :+ WeightsWrite(out.id, out.weights)
+        case out: Neuron => arr :+ WeightsWrite(out.id, out.weights)
         case _ => arr
       }
     })
@@ -50,9 +50,9 @@ object NeuronSystem {
 
   def create(model:Seq[NeuronModel]): NeuronSystem = {
     val neuronSystem = new NeuronSystem(model.length, model)
-    val inputs = model.filter(_.tag == NeuronTag.input).map(model => new NeuronInput(model.id))
-    val outputs = model.filter(_.tag == NeuronTag.output).map(model => new NeuronOut(model.id, model.inputs.toArray, Func(model.func), neuronSystem.neurons.apply))
-    val rest = model.filterNot(md => md.tag == NeuronTag.input || md.tag == NeuronTag.output).map(model => new NeuronOut(model.id, model.inputs.toArray, Func(model.func), neuronSystem.neurons.apply))
+    val inputs = model.filter(_.tag == NeuronTag.input).map(_.create(neuronSystem.neurons))
+    val outputs = model.filter(_.tag == NeuronTag.output).map(_.create(neuronSystem.neurons))
+    val rest = model.filterNot(md => md.tag == NeuronTag.input || md.tag == NeuronTag.output).map(_.create(neuronSystem.neurons))
     rest.foreach(_.setRandomWeight())
     outputs.foreach(_.setRandomWeight())
     neuronSystem.addNeurons(inputs)
