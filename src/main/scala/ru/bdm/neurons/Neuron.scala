@@ -2,7 +2,10 @@ package ru.bdm.neurons
 
 import scala.util.Random
 
-class Neuron(val id: Int, val inputs: Array[Int], val activate: Double => Double = Func(Func.sigmoid), val neurons: Int => Neuron) {
+class Neuron(val id: Int,
+             val neurons: Int => Neuron,
+             val inputs: Array[Int],
+             val activate: Double => Double = Func(Func.sigmoid)) {
 
   val weights: Array[Double] = new Array[Double](inputs.length + 1)
 
@@ -15,9 +18,11 @@ class Neuron(val id: Int, val inputs: Array[Int], val activate: Double => Double
   } else result_p
 
   def work(in: Seq[Double]): Double = {
-    val q = in.zip(weights).foldLeft(.0) { case (sum, (input, weight)) ⇒ sum + input * weight }
+    val sum = in.zip(weights).foldLeft(.0) {
+      case (sum, (input, weight)) ⇒ sum + input * weight
+    }
     is_be = true
-    result_p = activate(q + weights.last)
+    result_p = activate(sum + weights.last)
     result_p
   }
 

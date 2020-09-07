@@ -6,7 +6,8 @@ object MainXor extends App {
   val NUM = 10
   for(_ <- 1 to NUM) {
     val ns = Main.printTime() {
-      NeuronSystem.create(RecurLayer(2,2,1))
+      //NeuronSystem.create(RecurLayer(2,2,1))
+      NeuronSystem.createStandardModel(Seq(2,2,2,1))
       //  NeuronSystem.readFromFile("main.xor.json")
     }
     println(ns.model)
@@ -30,15 +31,15 @@ object MainXor extends App {
       old = bpa.sumError
       if (bpa.sumError < 0.003) {
         println(s"end in $i")
-        print(s"$i: ${bpa.sumError} speed=${bpa.speed}")
+        print(s"$i: ${bpa.sumError} speed=${bpa.speed}    ")
         quest.foreach(e => print(ns.work(e._1).head + " (" + e._2.head + ")"))
         se += i
         println()
         return
       }
       if (i % 100000 == 0) {
-        print(s"$i: ${bpa.sumError} speed=${bpa.speed}")
-        quest.foreach(e => print(ns.work(e._1).head + " (" + e._2.head + ")"))
+        print(s"$i: ${bpa.sumError} speed=${bpa.speed}     ")
+        quest.foreach(e => print(ns.work(e._1).head + " -> (" + e._2.head + "), "))
         println()
       }
     }

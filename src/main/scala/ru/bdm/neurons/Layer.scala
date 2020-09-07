@@ -18,9 +18,9 @@ class Layer(val neurons: IndexedSeq[NeuronModel] = IndexedSeq.empty) extends Ind
 
   def connectAllInputsTo(layer: Layer): Layer = {
     val me = renameIds(layer.length)
-    val out = me.outputs.map(n => n.copy(tag = NeuronTag.layer))
+    val out = me.outputs.map(n => n.copy(tag = NeuronTag.hidden))
     val outIds = me.outputs.map(_.id)
-    val in = layer.inputs.map(n => n.copy(inputs = outIds ++ n.inputs, tag = NeuronTag.layer))
+    val in = layer.inputs.map(n => n.copy(inputs = outIds ++ n.inputs, tag = NeuronTag.hidden))
     createLayer(me, layer, out, in)
   }
 
@@ -32,9 +32,9 @@ class Layer(val neurons: IndexedSeq[NeuronModel] = IndexedSeq.empty) extends Ind
     if (outputs.length != layer.inputs.length)
       throw new Exception("количество входов выходов не равны!")
     val me = renameIds(layer.length)
-    val out = me.outputs.map(n => n.copy(tag = NeuronTag.layer))
+    val out = me.outputs.map(n => n.copy(tag = NeuronTag.hidden))
     val in = me.outputs.map(_.id).zip(layer.inputs).map { case (id, neuron) =>
-      neuron.copy(inputs = neuron.inputs :+ id, tag = NeuronTag.layer)
+      neuron.copy(inputs = neuron.inputs :+ id, tag = NeuronTag.hidden)
     }
     createLayer(me, layer, out, in)
   }

@@ -1,16 +1,19 @@
 package ru.bdm.neurons
 
 object RecurLayer {
-  def apply(in: Int, layer: Int, out: Int): Layer = {
-    val inputs = 0 until in map (id => NeuronModel(id, Seq((id + in - 1) % in), tag = NeuronTag.input))
+  def apply(in: Int, hidden: Int, out: Int): Layer = {
+    val inputs = 0 until in map (id => NeuronModel(id, Seq(), tag = NeuronTag.input))
 
-    val ss = (in) until (in + layer) map { id =>
-      NeuronModel(id, Seq((id + layer - 1) % layer + in) ++ (0 until in))
+    val ss = (in) until (in + hidden) map { id =>
+      NeuronModel(id, 0 until in, recurrentInputs = Some(Seq(id)))
+    }
+    val ss1 = (in + hidden) until (in + hidden * 2) map { id =>
+      NeuronModel(id, in until (in + hidden), recurrentInputs = Some(Seq(id)))
     }
 
-    val end = (in + layer) until (in + layer + out) map (id =>
-      NeuronModel(id, Seq((id + out - 1) % out + in + layer) ++ (in until (layer + in)), NeuronTag.output))
+    val end = (in + hidden * 2) until (in + hidden * 2 + out) map (id =>
+      NeuronModel(id, in until (hidden + in), NeuronTag.output))
 
-    new Layer(inputs ++ ss ++ end)
+    new Layer(inputs ++ ss ++ ss1 ++ end)
   }
 }

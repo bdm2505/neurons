@@ -53,11 +53,12 @@ object NeuronSystem {
     val inputs = model.filter(_.tag == NeuronTag.input).map(_.create(neuronSystem.neurons))
     val outputs = model.filter(_.tag == NeuronTag.output).map(_.create(neuronSystem.neurons))
     val rest = model.filterNot(md => md.tag == NeuronTag.input || md.tag == NeuronTag.output).map(_.create(neuronSystem.neurons))
-    rest.foreach(_.setRandomWeight())
-    outputs.foreach(_.setRandomWeight())
+
+
     neuronSystem.addNeurons(inputs)
     neuronSystem.addNeurons(rest)
     neuronSystem.addNeurons(outputs)
+    neuronSystem.neurons.foreach(_.setRandomWeight())
     neuronSystem.inputs = inputs.toIndexedSeq
     neuronSystem.outputs = outputs.toIndexedSeq
     neuronSystem
