@@ -1,12 +1,10 @@
 package ru.bdm.neurons
 
-case class NeuronSystemWrite(model: Seq[NeuronModel], neurons: Seq[WeightsWrite]) {
+case class NeuronSystemWrite(model: Seq[NeuronModel], neurons: Seq[WeightsWrite], inputs:Seq[Int], outputs:Seq[Int]) {
   def create(): NeuronSystem = {
-    val ns = NeuronSystem.create(model)
+    val ns = NeuronSystem(new Layer(model.toIndexedSeq, inputs, outputs))
     neurons.foreach { neuron =>
-      val arr = ns.neurons(neuron.id).weights
-      for (i <- arr.indices)
-        arr(i) = neuron.weights(i)
+      ns.neurons(neuron.id).setWeights(neuron.weights)
     }
     ns
   }

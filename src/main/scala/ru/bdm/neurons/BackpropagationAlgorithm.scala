@@ -4,20 +4,22 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5) {
+class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5, var moment:Double = 0.3) {
 
   val isBe: Array[Boolean] = new Array(ns.neurons.length)
 
   val errors: Array[Double] = new Array(ns.neurons.length)
   var set: Set[Int] = Set.empty
   var sumError: Double = 0
+  val deltaWeights:Array[Array[Double]] = new Array(ns.neurons.length)
 
-
-  def derivative(d: Double): Double = d * (1 - d)
+  for(i <- deltaWeights.indices){
+    deltaWeights(i) = Array.fill(ns.neurons(i).weights.length)(0d)
+  }
 
   def teach(inputs: Seq[Double], rights: Seq[Double], parallel: Boolean = false): Unit = {
     ns.work(inputs)
-    println("teach start")
+
     for (i <- isBe.indices) {
       isBe(i) = false
     }
@@ -26,14 +28,16 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5) {
     sumError = 0
 
     ns.outputs.zip(rights).foreach { case (neuron, right) =>
-      sumError += Math.abs(right - neuron.result())
+      sumError += Math.pow(right - neuron.result(), 2)
       errors(neuron.id) = (right - neuron.result())
       set += neuron.id
     }
+    sumError = Math.sqrt(sumError / ns.outputs.length)
+
 
     while (set.nonEmpty) {
       val oldSet = set
-      println(s"set=$oldSet")
+
       set = Set.empty
       oldSet foreach { id =>
         if (parallel) Future {
@@ -48,7 +52,9 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5) {
     ns.neurons(id) match {
       case neuron: Neuron if !isBe(neuron.id) =>
         isBe(neuron.id) = true
-        errors(neuron.id) *= derivative(neuron.result())
+//        print(s"error active id=${neuron.id} ${neuron.derivative(neuron.result())} old error=${errors(neuron.id)} new=")
+        errors(neuron.id) *= neuron.derivative(neuron.result())
+//        println(errors(neuron.id))
 
         (neuron match {
           case recurrent: NeuronRecurrent =>
@@ -56,22 +62,30 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5) {
           case n: Neuron =>
             n.inputs
         }).zip(neuron.weights).foreach { case (id, weight) =>
+       //   println(s"update err $id += ${weight * errors(neuron.id)} ($weight * ${errors(neuron.id)})")
           errors(id) += weight * errors(neuron.id)
           if (!isBe(id))
             set += id
         }
-        for (i <- neuron.inputs.indices)
-          neuron.weights(i) +=
-            errors(neuron.id) * speed * ns.neurons(neuron.inputs(i)).result()
-        neuron match {
+        val results = neuron match {
           case recurrent: NeuronRecurrent =>
-            for (i <- neuron.inputs.length until (neuron.weights.length - 1))
-              neuron.weights(i) += errors(neuron.id) * speed *
-                ns.neurons(recurrent.recurrentInputs(i - recurrent.inputs.length)).asInstanceOf[NeuronRecurrent].oldResult
-          case _ =>
+            neuron.inputs.map(ns.neurons(_).result()) ++
+              recurrent.recurrentInputs.map(ns.neurons(_).asInstanceOf[NeuronRecurrent].oldResult)
+          case neuron: Neuron =>
+            neuron.inputs.map(ns.neurons(_).result())
         }
-        neuron.weights(neuron.weights.length - 1) += errors(neuron.id) * speed
+        updateWeights(neuron, results)
+        if(neuron.inputs.isEmpty)
+          neuron.weights(neuron.weights.length - 1) += errors(neuron.id) * speed
       case _ =>
+    }
+  }
+
+  def updateWeights(neuron:Neuron, results: Seq[Double]): Unit = {
+    for(i <- results.indices) {
+      val dw = speed * errors(neuron.id) * results(i)
+      neuron.weights(i) += dw + moment * deltaWeights(neuron.id)(i)
+      deltaWeights(neuron.id)(i) = dw
     }
   }
 }
