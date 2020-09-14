@@ -12,7 +12,7 @@ object Main1 extends App {
       val input = Seq(0.2, 0.5)
       val out = Seq(0.9)
 
-      bpa.teach(input, out, parallel = true)
+      bpa.teach(input, out)
       println(i + ": " + (1 - bpa.sumError))
     }
   }

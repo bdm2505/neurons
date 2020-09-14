@@ -6,10 +6,10 @@ import scala.concurrent.Future
 
 class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5, var moment:Double = 0.3) {
 
-  val isBe: Array[Boolean] = new Array(ns.neurons.length)
+  val visited: Array[Boolean] = new Array(ns.neurons.length)
 
   val errors: Array[Double] = new Array(ns.neurons.length)
-  var set: Set[Int] = Set.empty
+  var nextNeurons: Set[Int] = Set.empty
   var sumError: Double = 0
   val deltaWeights:Array[Array[Double]] = new Array(ns.neurons.length)
 
@@ -17,11 +17,11 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5, va
     deltaWeights(i) = Array.fill(ns.neurons(i).weights.length)(0d)
   }
 
-  def teach(inputs: Seq[Double], rights: Seq[Double], parallel: Boolean = false): Unit = {
+  def teach(inputs: Seq[Double], rights: Seq[Double]): Unit = {
     ns.work(inputs)
 
-    for (i <- isBe.indices) {
-      isBe(i) = false
+    for (i <- visited.indices) {
+      visited(i) = false
     }
     for (i <- errors.indices)
       errors(i) = 0
@@ -30,19 +30,16 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5, va
     ns.outputs.zip(rights).foreach { case (neuron, right) =>
       sumError += Math.pow(right - neuron.result(), 2)
       errors(neuron.id) = (right - neuron.result())
-      set += neuron.id
+      nextNeurons += neuron.id
     }
     sumError = Math.sqrt(sumError / ns.outputs.length)
 
 
-    while (set.nonEmpty) {
-      val oldSet = set
+    while (nextNeurons.nonEmpty) {
+      val oldSet = nextNeurons
 
-      set = Set.empty
+      nextNeurons = Set.empty
       oldSet foreach { id =>
-        if (parallel) Future {
-          calculate(id)
-        } else
           calculate(id)
       }
     }
@@ -50,8 +47,8 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5, va
 
   private def calculate(id: Int): Unit = {
     ns.neurons(id) match {
-      case neuron: Neuron if !isBe(neuron.id) =>
-        isBe(neuron.id) = true
+      case neuron: Neuron if !visited(neuron.id) =>
+        visited(neuron.id) = true
 //        print(s"error active id=${neuron.id} ${neuron.derivative(neuron.result())} old error=${errors(neuron.id)} new=")
         errors(neuron.id) *= neuron.derivative(neuron.result())
 //        println(errors(neuron.id))
@@ -64,8 +61,8 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5, va
         }).zip(neuron.weights).foreach { case (id, weight) =>
        //   println(s"update err $id += ${weight * errors(neuron.id)} ($weight * ${errors(neuron.id)})")
           errors(id) += weight * errors(neuron.id)
-          if (!isBe(id))
-            set += id
+          if (!visited(id))
+            nextNeurons += id
         }
         val results = neuron match {
           case recurrent: NeuronRecurrent =>

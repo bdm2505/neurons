@@ -23,7 +23,7 @@ class Layer(val neurons: IndexedSeq[NeuronModel] = IndexedSeq.empty,
   def *(layer: Layer): Layer = {
     val newLayer = layer.renameIds(this.length)
     val newInput = newLayer.inputs.map(id => newLayer.find(_.id == id).get).map(n => n.copy(inputs = outputs ++ n.inputs))
-    val rest = newLayer.filterNot(n => newLayer.inputs.contains(n.id))
+    val rest = restNeurons(newLayer)
     new Layer(this ++ newInput ++ rest, inputs, newLayer.outputs)
   }
 
@@ -33,8 +33,12 @@ class Layer(val neurons: IndexedSeq[NeuronModel] = IndexedSeq.empty,
     val newLayer = layer.renameIds(this.length)
     val newInput = newLayer.inputs.map(id => newLayer.find(_.id == id).get).zip(outputs)
       .map{ case (n, out) => n.copy(inputs = n.inputs :+ out)}
-    val rest = newLayer.filterNot(n => newLayer.inputs.contains(n.id))
+    val rest = restNeurons(newLayer)
     new Layer(this ++ newInput ++ rest, inputs, newLayer.outputs)
+  }
+
+  private def restNeurons(newLayer: Layer) = {
+    newLayer.filterNot(n => newLayer.inputs.contains(n.id))
   }
 
   override def toString(): String = s"Layer(in_size=${inputs.length}, out_size=${outputs.length} " +

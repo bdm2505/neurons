@@ -11,9 +11,9 @@ class Neuron(val id: Int,
   val weights: Array[Double] = new Array[Double](Math.max(inputs.length, 1))
 
   private var result_p: Double = 0
-  private var is_be: Boolean = false
+  private var visited: Boolean = false
 
-  def result(): Double = if (!is_be) {
+  def result(): Double = if (!visited) {
     work(inputs.map(neurons(_).result()))
   } else result_p
 
@@ -21,7 +21,7 @@ class Neuron(val id: Int,
     val sum = in.zip(weights).foldLeft(.0) {
       case (sum, (input, weight)) ⇒ sum + input * weight
     } + (if(in.isEmpty) weights.head else 0)
-    is_be = true
+    visited = true
     result_p = activate(sum)
     //println(s"work:  inputs=$in sum=$sum result=$result_p")
     result_p
@@ -39,7 +39,7 @@ class Neuron(val id: Int,
   }
 
   def update(): Unit =
-    is_be = false
+    visited = false
 
   override def toString: String = s"Neuron(${weights.mkString(", ")})"
 }

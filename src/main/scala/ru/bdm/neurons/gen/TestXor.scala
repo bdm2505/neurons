@@ -14,7 +14,7 @@ object TestXor extends App {
       Math.pow(ns.work(quest(rn)._1).head - quest(rn)._2.head, 2)
     } sum
   }
-  val alg = new GenAlgForNeuron(layer, appr)
+  val alg = new GeneticAlgorithmForNeuron(layer, appr)
 
   for(i <- 1 to 100) {
     alg.learnOne()
@@ -24,7 +24,7 @@ object TestXor extends App {
   }
 
   def printlnResult(): Unit = {
-    quest.foreach(e => print(alg.chroms.head.work(e._1).head + " (" + e._2.head + ")"))
+    quest.foreach(e => print(alg.chromosomes.head.work(e._1).head + " (" + e._2.head + ")"))
     println()
   }
 }
