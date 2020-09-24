@@ -19,10 +19,10 @@ abstract class GeneticAlgorithm[CHR](val numberChromosomes: Int = 100,
     val counted = appraisal(chromosomes).zipWithIndex.sortBy(_._1)
     bestResult = counted.head._1
     val sorted = counted.map { case (_, index) => chromosomes(index) }
-    val bestNumber = (numberChromosomes * percentBest) toInt
+    val bestNumber = (numberChromosomes * percentBest).toInt
     val best = sorted.slice(0, bestNumber)
     val forMerge = sorted.slice(bestNumber, bestNumber * 2)
-    val mergeNumber = (numberChromosomes * percentMerge) toInt
+    val mergeNumber = (numberChromosomes * percentMerge).toInt
     val merges = 1 to mergeNumber map { _ =>
       merge(best(Random.nextInt(best.length)), forMerge(Random.nextInt(forMerge.length)))
     }

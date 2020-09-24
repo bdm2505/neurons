@@ -9,10 +9,10 @@ object TestXor extends App {
 
   val layer = Layer(2) * Layer(10) * Layer(10) * Layer(1)
   def appr(ns:NeuronSystem): Double = {
-    1 to 10 map { _ =>
+    (1 to 10).map{ _ =>
       val rn = Random.nextInt(quest.length)
       Math.pow(ns.work(quest(rn)._1).head - quest(rn)._2.head, 2)
-    } sum
+    }.sum
   }
   val alg = new GeneticAlgorithmForNeuron(layer, appr)
 
