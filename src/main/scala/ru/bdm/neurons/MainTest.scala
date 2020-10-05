@@ -12,10 +12,17 @@ object MainTest extends App {
   println(ns.neurons.map(n =>n.id + "-> "+ n.result()).mkString("(", ", ", ")"))
 
   val bpa = new BackpropagationAlgorithm(ns, 0.7)
+
+  val a = new TrainSet {
+    override def hasNext: Boolean = true
+    override def next(): (Seq[Double], Seq[Double]) = Seq(1d,0d) -> Seq(1d)
+  }
+  bpa.teach(a, 100)
+
   println(ns.work(Seq(0d,1d)))
   println(ns.neurons.map(_.result()).mkString("(", ", ", ")"))
 
-  bpa.teach(Seq(0d,1d), Seq(1d))
+  bpa.teachOne(Seq(0d,1d), Seq(1d))
   println(bpa.errors.mkString("Error (", ", ", ")"))
   println(ns)
   println(ns.work(Seq(1d,0d)))

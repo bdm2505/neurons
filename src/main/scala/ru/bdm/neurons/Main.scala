@@ -63,9 +63,9 @@ val LEN = 7
         val st_index = iter % (str.length - LEN - 1)
         val inputs = genInputs(str.slice(st_index, st_index + LEN))
         val oldRes = getOut(ns.work(inputs))
-        bpa.teach(inputs,genOuts(str.charAt(st_index + LEN)))
+        bpa.teachOne(inputs,genOuts(str.charAt(st_index + LEN)))
         if(iter % 531 == 0)
-          println(s"${str.slice(st_index, st_index + LEN)}(${str.charAt(st_index + LEN)}) -> ${getOut(ns.work(inputs))} old($oldRes) error=${bpa.sumError}")
+          println(s"${str.slice(st_index, st_index + LEN)}(${str.charAt(st_index + LEN)}) -> ${getOut(ns.work(inputs))} old($oldRes) error=${bpa.error}")
       }
     }
 

@@ -6,18 +6,26 @@ import scala.concurrent.Future
 
 class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5, var moment:Double = 0.3) {
 
+
   val visited: Array[Boolean] = new Array(ns.neurons.length)
 
   val errors: Array[Double] = new Array(ns.neurons.length)
   var nextNeurons: Set[Int] = Set.empty
-  var sumError: Double = 0
+  var error: Double = 1
   val deltaWeights:Array[Array[Double]] = new Array(ns.neurons.length)
 
   for(i <- deltaWeights.indices){
     deltaWeights(i) = Array.fill(ns.neurons(i).weights.length)(0d)
   }
 
-  def teach(inputs: Seq[Double], rights: Seq[Double]): Unit = {
+  def teach(trainSet: Iterator[(Seq[Double], Seq[Double])], maxNumber:Int = Int.MaxValue, accuracy: Double = 0): Unit = {
+    for (((input, answer), index) <- trainSet.zipWithIndex){
+      if(index > maxNumber || error <= accuracy)
+      teachOne(input, answer)
+    }
+  }
+
+  def teachOne(inputs: Seq[Double], rights: Seq[Double]): Unit = {
     ns.work(inputs)
 
     for (i <- visited.indices) {
@@ -25,14 +33,14 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5, va
     }
     for (i <- errors.indices)
       errors(i) = 0
-    sumError = 0
+    error = 0
 
     ns.outputs.zip(rights).foreach { case (neuron, right) =>
-      sumError += Math.pow(right - neuron.result(), 2)
+      error += Math.abs(right - neuron.result())
       errors(neuron.id) = (right - neuron.result())
       nextNeurons += neuron.id
     }
-    sumError = Math.sqrt(sumError / ns.outputs.length)
+    error = error / ns.outputs.length
 
 
     while (nextNeurons.nonEmpty) {

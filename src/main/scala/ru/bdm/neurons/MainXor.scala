@@ -26,8 +26,8 @@ object MainXor extends App {
     for (i <- 1 to 1000000) {
       var sumE = 0d
       for ((input, answer) <- quest) {
-        bpa.teach(input, answer)
-        sumE += bpa.sumError
+        bpa.teachOne(input, answer)
+        sumE += bpa.error
       }
       sumE /= 4
       //      println((bpa.sumError - old) * 100)
