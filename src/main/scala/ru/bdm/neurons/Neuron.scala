@@ -2,11 +2,12 @@ package ru.bdm.neurons
 
 import scala.util.Random
 
-class Neuron(val id: Int,
-             val neurons: Int => Neuron,
-             val inputs: Array[Int],
-             val activate: Double => Double = Func(Func.sigmoid),
-             val derivative: Double => Double = Func.derivative(Func.sigmoid)) {
+class Neuron(
+              val id: Int,
+              val neurons: Int => Neuron,
+              val inputs: Array[Int],
+              val activate: Double => Double = Func(Func.sigmoid),
+              val derivative: Double => Double = Func.derivative(Func.sigmoid)) {
 
   val weights: Array[Double] = new Array[Double](Math.max(inputs.length, 1))
 
@@ -20,7 +21,7 @@ class Neuron(val id: Int,
   def work(in: Seq[Double]): Double = {
     val sum = in.zip(weights).foldLeft(.0) {
       case (sum, (input, weight)) ⇒ sum + input * weight
-    } + (if(in.isEmpty) weights.head else 0)
+    } + (if (in.isEmpty) weights.head else 0)
     visited = true
     result_p = activate(sum)
     //println(s"work:  inputs=$in sum=$sum result=$result_p")
@@ -32,9 +33,9 @@ class Neuron(val id: Int,
       weights(i) = ws(i)
   }
 
-  def setRandomWeight(): Neuron = {
+  def setRandomWeight(rand: Random): Neuron = {
     for (i ← weights.indices)
-      weights(i) = Random.nextDouble() * 20 - 10.0
+      weights(i) = rand.nextDouble() * 20 - 10.0
     this
   }
 

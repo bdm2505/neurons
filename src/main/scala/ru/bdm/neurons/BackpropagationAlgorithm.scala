@@ -18,11 +18,21 @@ class BackpropagationAlgorithm(val ns: NeuronSystem, var speed: Double = 0.5, va
     deltaWeights(i) = Array.fill(ns.neurons(i).weights.length)(0d)
   }
 
-  def teach(trainSet: Iterator[(Seq[Double], Seq[Double])], maxNumber:Int = Int.MaxValue, accuracy: Double = 0): Unit = {
+  def teach(trainSet: Iterator[(Seq[Double], Seq[Double])], maxNumber:Int = Int.MaxValue, logIteration: Int = -1): Unit = {
+
     for (((input, answer), index) <- trainSet.zipWithIndex){
-      if(index > maxNumber || error <= accuracy)
+      if(index > maxNumber) {
+        if(logIteration > 0) printLog(1, index)
+        return
+      }
+      printLog(logIteration, index)
       teachOne(input, answer)
     }
+  }
+
+  private def printLog(logIteration: Int, index: Int): Unit = {
+    if (logIteration > 0 && index % logIteration == 0)
+      println(s"error=$error index=$index speed=$speed moment=$moment ns_inputs=${ns.inputs.length} ns_outputs=${ns.outputs.length}")
   }
 
   def teachOne(inputs: Seq[Double], rights: Seq[Double]): Unit = {

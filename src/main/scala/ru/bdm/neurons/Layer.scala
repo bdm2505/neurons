@@ -1,78 +1,76 @@
 package ru.bdm.neurons
 
-class Layer(val neurons: IndexedSeq[NeuronModel] = IndexedSeq.empty,
-            val inputs:Seq[Int] = Seq.empty,
-            val outputs:Seq[Int] = Seq.empty) extends IndexedSeq[NeuronModel] {
 
-  var ids: Int = neurons.length - 1
+case class Layer(
+                  neurons: Map[Int, NeuronModel],
+                  inputs: Seq[Int],
+                  outputs: Seq[Int]
+                ) {
 
-  def nextId: Int = {
-    ids += 1
-    ids
-  }
+  def find(key: Int): Option[NeuronModel] = neurons.get(key)
 
+  def size: Int = neurons.size
 
-  def renameIds(start: Int): Layer = {
+  val inputNeurons: Map[Int, NeuronModel] = inputs.map(i => i -> neurons(i)).toMap
+  val outputNeurons: Map[Int, NeuronModel] = outputs.map(i => i -> neurons(i)).toMap
+
+  private def renameIds(start: Int): Layer = {
     new Layer(
-      neurons.map(n => n.copy(n.id + start, n.inputs.map(_ + start), recurrentInputs = n.recurrentInputs.map(_.map(_ + start)))),
+      neurons.map { case (id, neuron) =>
+        (id + start) -> neuron.copy(neuron.inputs.map(_ + start), recurrentInputs = neuron.recurrentInputs.map(_.map(_ + start)))
+      },
       inputs.map(_ + start),
       outputs.map(_ + start)
     )
   }
 
-  def *(layer: Layer): Layer = {
-    val newLayer = layer.renameIds(this.length)
-    val newInput = newLayer.inputs.map(id => newLayer.find(_.id == id).get).map(n => n.copy(inputs = outputs ++ n.inputs))
-    val rest = restNeurons(newLayer)
-    new Layer(this ++ newInput ++ rest, inputs, newLayer.outputs)
+  def *(layer: Layer, displacementNeuron: Boolean = true): Layer = {
+    val newLayer = layer.renameIds(this.size + (if (displacementNeuron) 1 else 0))
+    val newInput = newLayer.inputNeurons.map { case (id, neuron) =>
+      id -> neuron.copy(inputs = outputs ++ neuron.inputs ++ (if (displacementNeuron) Seq(this.size) else Seq.empty))
+    }
+    new Layer(newLayer.neurons ++ neurons ++ newInput ++ (if (displacementNeuron) Map(this.size -> NeuronModel()) else Map.empty), inputs, newLayer.outputs)
   }
 
   def +(layer: Layer): Layer = {
     if (outputs.length != layer.inputs.length)
       throw new Exception("количество входов выходов не равны!")
-    val newLayer = layer.renameIds(this.length)
-    val newInput = newLayer.inputs.map(id => newLayer.find(_.id == id).get).zip(outputs)
-      .map{ case (n, out) => n.copy(inputs = n.inputs :+ out)}
-    val rest = restNeurons(newLayer)
-    new Layer(this ++ newInput ++ rest, inputs, newLayer.outputs)
+    val newLayer = layer.renameIds(this.size)
+    val newInput = newLayer.inputNeurons.zip(outputs)
+      .map { case ((id, n), out) => id -> n.copy(inputs = n.inputs :+ out) }
+
+    new Layer(newLayer.neurons ++ neurons ++ newInput, inputs, newLayer.outputs)
   }
 
-  private def restNeurons(newLayer: Layer) = {
-    newLayer.filterNot(n => newLayer.inputs.contains(n.id))
+  def |(layer: Layer): Layer = {
+    val newLayer = layer.renameIds(size)
+    new Layer(
+      neurons ++ newLayer.neurons,
+      inputs ++ newLayer.inputs,
+      outputs ++ newLayer.outputs
+    )
   }
 
-  override def toString(): String = s"Layer(in_size=${inputs.length}, out_size=${outputs.length} " +
-    s"hidden_size=${neurons.length - inputs.length - outputs.length} ${super.toString})"
+  override def toString: String = s"Layer(in_size=${inputs.length}, out_size=${outputs.length} " +
+    s"hidden_size=${neurons.size - inputs.length - outputs.length} ${neurons.mkString("(",", ", ")")})"
 
-  override def apply(i: Int): NeuronModel = neurons(i)
-
-  override def length: Int = neurons.length
 }
 
 object Layer {
-  def apply(number: Int) =
-    new Layer(0 until (number) map (id => NeuronModel(id)), inputs = 0 until number, outputs = 0 until number)
-
-  def apply(layers: Layer*): Layer = {
-    var start = -layers.head.length
-    new Layer(layers.flatMap { l =>
-      start += l.length
-      l.renameIds(start)
-    }.toIndexedSeq)
-  }
-  def seq(model:Seq[NeuronModel]) = {
-    new Layer(model.toIndexedSeq, model.indices, model.indices)
+  def apply(number: Int, func: Func.Type = Func.sigmoid): Layer = {
+    new Layer((0 until number map (id => id -> NeuronModel(func = func))).toMap, inputs = 0 until number, outputs = 0 until number)
   }
 
-  def recurrent(number: Int, recurrentInputs: Int => Seq[Int]) =
-    new Layer(0 until (number) map (id => NeuronModel(id, recurrentInputs = Some(recurrentInputs(id)))), inputs = 0 until number, outputs = 0 until number)
+  def notInput(number: Int, func: Func.Type = Func.sigmoid): Layer =
+    new Layer((0 until number map (id => id -> NeuronModel(func = func))).toMap, inputs = Seq.empty, outputs = 0 until number)
 
-  def model(model:Seq[Int]): Layer = {
-    var layers = Layer(model.head)
-    for(num <- model.slice(1, model.length - 1)){
-      layers *= Layer(num)
+  def recurrent(number: Int, recurrentInputs: Int => Seq[Int], func: Func.Type = Func.sigmoid) =
+    new Layer((0 until number map (id => id -> NeuronModel(recurrentInputs = Some(recurrentInputs(id)), func = func))).toMap, inputs = 0 until number, outputs = 0 until number)
+
+  def model(model: Seq[Int], func: Func.Type = Func.sigmoid, displacementNeuron: Boolean = true): Layer = {
+    model.tail.foldLeft(Layer(model.head, func)){ case (layer, num) =>
+      Layer(num, func) * (layer, displacementNeuron)
     }
-    layers * Layer(model.last)
   }
 }
 

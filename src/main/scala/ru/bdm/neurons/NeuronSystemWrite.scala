@@ -1,8 +1,8 @@
 package ru.bdm.neurons
 
-case class NeuronSystemWrite(model: Seq[NeuronModel], neurons: Seq[WeightsWrite], inputs:Seq[Int], outputs:Seq[Int]) {
+case class NeuronSystemWrite(model: Layer, neurons: Seq[WeightsWrite]) {
   def create(): NeuronSystem = {
-    val ns = NeuronSystem(new Layer(model.toIndexedSeq, inputs, outputs))
+    val ns = NeuronSystem(model)
     neurons.foreach { neuron =>
       ns.neurons(neuron.id).setWeights(neuron.weights)
     }

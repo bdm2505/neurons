@@ -6,24 +6,21 @@ import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
 
 import scala.io.Source
+import scala.util.Random
 
 class NeuronSystem(val model: Layer) {
 
 
-  val neurons: Array[Neuron] = new Array(model.length)
+  val neurons: Array[Neuron] = new Array(model.size)
 
-  addNeurons(model.map(_.create(neurons)))
+  model.neurons.foreach{ case (id, neuronModel) =>
+    neurons(id) = neuronModel.create(id, neurons)
+  }
+
 
   val inputs: Array[Neuron] = model.inputs.map(neurons(_)).toArray
   val outputs: Array[Neuron] = model.outputs.map(neurons(_)).toArray
 
-  def addNeurons(ns: Seq[Neuron]): Unit = {
-    ns.foreach { neuron =>
-      if (neurons(neuron.id) != null)
-        throw new Exception(s"id=${neuron.id} neuron already exist")
-      neurons(neuron.id) = neuron
-    }
-  }
 
   def work(in: Seq[Double]): Seq[Double] = {
     neurons.foreach(_.update())
@@ -32,11 +29,11 @@ class NeuronSystem(val model: Layer) {
   }
 
   def write(): NeuronSystemWrite = {
-    NeuronSystemWrite(model, neurons.map(n => WeightsWrite(n.id, n.weights)), inputs.map(_.id), outputs.map(_.id))
+    NeuronSystemWrite(model, neurons.map{ n=> WeightsWrite(n.id, n.weights)})
   }
 
-  def setRandomWeights(): NeuronSystem = {
-    neurons.foreach(_.setRandomWeight())
+  def setRandomWeights(rand: Random = Random): NeuronSystem = {
+    neurons.foreach(_.setRandomWeight(rand))
     this
   }
 
